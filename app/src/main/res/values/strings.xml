@@ -1,0 +1,67 @@
+<resources>
+    <string name="app_name">Переворот</string>
+
+    <!-- Card Names -->
+    <string name="card_duke">Губернатор</string>
+    <string name="card_assassin">Убийца</string>
+    <string name="card_captain">Капитан</string>
+    <string name="card_ambassador">Советник</string>
+    <string name="card_contessa">Графиня</string>
+
+    <!-- Player Names -->
+    <string name="player_1">Игрок 1</string>
+    <string name="player_2">Игрок 2</string>
+    <string name="player_3">Игрок 3</string>
+
+    <!-- UI Text -->
+    <string name="players">Игроки:</string>
+    <string name="coins">монет</string>
+    <string name="influence">влияния</string>
+    <string name="your_turn">Ваш ход, %1$s</string>
+    <string name="your_cards">Ваши карты: %1$s</string>
+    <string name="actions">Действия:</string>
+    <string name="income">Доход</string>
+    <string name="foreign_aid">Иностранная помощь</string>
+    <string name="tax_duke">Налог (Губернатор)</string>
+    <string name="coup_coins">Переворот (%1$d монет)</string>
+    <string name="assassinate_coins">Убить (%1$d монет)</string>
+    <string name="steal_captain">Кража (Капитан)</string>
+    <string name="exchange_ambassador">Обмен (Советник)</string>
+    <string name="game_log">Лог игры</string>
+    <string name="select_target">Выберите цель</string>
+    <string name="cancel">Отмена</string>
+    <string name="challenge">Не верю!</string>
+    <string name="pass">Пас</string>
+    <string name="pending_action">Ожидаемое действие: %1$s</string>
+    <string name="challenge_or_pass">Кто хочет бросить вызов или спасовать?</string>
+    <string name="challenger_prompt">%1$s:</string>
+    <string name="current_player_indicator">></string>
+    <string name="exchange_cards_title">Обмен карт</string>
+    <string name="exchange_cards_prompt">Выберите 2 карты, чтобы оставить их себе</string>
+    <string name="confirm">Подтвердить</string>
+    <string name="lose_influence_title">Потеря влияния</string>
+    <string name="lose_influence_prompt">Выберите карту, которую вы потеряете</string>
+
+    <!-- Game Log Messages -->
+    <string name="log_game_started">Игра началась с игроками: %1$s</string>
+    <string name="log_income">%1$s берет Доход (1 монета).</string>
+    <string name="log_foreign_aid">%1$s берет Иностранную помощь (2 монеты).</string>
+    <string name="log_tax">%1$s заявляет, что он Губернатор, и берет Налог (3 монеты).</string>
+    <string name="log_coup_requires_target">Для Переворота нужна цель.</string>
+    <string name="log_coup">%1$s совершает Переворот против %2$s.</string>
+    <string name="log_coup_insufficient_coins">У %1$s недостаточно монет для Переворота.</string>
+    <string name="log_action_requires_target">Для действия %1$s нужна цель.</string>
+    <string name="log_assassinate_attempt">%1$s пытается Убить %2$s.</string>
+    <string name="log_assassinate_insufficient_coins">У %1$s недостаточно монет для Убийства.</string>
+    <string name="log_steal">%1$s заявляет, что он Капитан, и пытается украсть у %2$s.</string>
+    <string name="log_action_not_implemented">Действие еще не реализовано.</string>
+    <string name="log_lose_influence">%1$s теряет влияние и вскрывает карту %2$s.</string>
+    <string name="log_player_eliminated">%1$s выбывает из игры.</string>
+    <string name="log_challenge_issued">%1$s не верит %2$s.</string>
+    <string name="log_challenge_successful_bluff">%2$s блефовал! У него нет %3$s. %2$s теряет влияние.</string>
+    <string name="log_challenge_failed_has_card">%1$s не прав! %2$s показывает %3$s. %1$s теряет влияние.</string>
+    <string name="log_player_passes">%1$s пасует.</string>
+    <string name="log_exchange_ambassador">%1$s заявляет, что он Советник, и берет 2 карты из колоды.</string>
+    <string name="log_exchange_cards">%1$s возвращает 2 карты в колоду.</string>
+
+</resources>
