@@ -1,58 +1,80 @@
 package com.example.coupgame
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Gavel
+import androidx.compose.material.icons.filled.GroupAdd
+import androidx.compose.material.icons.filled.NotInterested
+import androidx.compose.material.icons.filled.Paid
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.compose.ui.unit.sp
 import com.example.coupgame.ui.theme.CoupGameTheme
-
-class GameViewModelFactory(private val playerNames: List<String>) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(GameViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return GameViewModel(playerNames) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
-    }
-}
-
-class GameViewModel(playerNames: List<String>) : ViewModel() {
-    val gameState = GameState()
-
-    init {
-        gameState.startGame(playerNames)
-    }
-}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val playerNames = listOf(
-            getString(R.string.player_1),
-            getString(R.string.player_2),
-            getString(R.string.player_3)
-        )
-        val gameViewModel: GameViewModel by viewModels { GameViewModelFactory(playerNames) }
+        val gameViewModel: GameViewModel by viewModels()
 
         setContent {
             CoupGameTheme {
+                val gameId by gameViewModel.gameId.collectAsState()
+                val error by gameViewModel.error.collectAsState()
+                val gameStatus by gameViewModel.gameState.gameStatus.collectAsState()
+
+                LaunchedEffect(error) {
+                    error?.let {
+                        Toast.makeText(this@MainActivity, it, Toast.LENGTH_LONG).show()
+                    }
+                }
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    GameScreen(
-                        gameState = gameViewModel.gameState,
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    if (gameId == null) {
+                        LobbyScreen(
+                            viewModel = gameViewModel,
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    } else {
+                        when (gameStatus) {
+                            "waiting" -> WaitingRoomScreen(
+                                viewModel = gameViewModel,
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                            "in_progress" -> GameScreen(
+                                viewModel = gameViewModel,
+                                modifier = Modifier.padding(innerPadding)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -60,7 +82,84 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun GameScreen(gameState: GameState, modifier: Modifier = Modifier) {
+fun LobbyScreen(viewModel: GameViewModel, modifier: Modifier = Modifier) {
+    var playerName by remember { mutableStateOf("") }
+    var gameIdInput by remember { mutableStateOf("") }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Coup Online", style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value = playerName,
+            onValueChange = { playerName = it },
+            label = { Text("Your Name") },
+            singleLine = true
+        )
+        Spacer(Modifier.height(16.dp))
+
+        Button(onClick = { viewModel.createOnlineGame(playerName) }, enabled = playerName.isNotBlank()) {
+            Text("Create Game")
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        OutlinedTextField(
+            value = gameIdInput,
+            onValueChange = { gameIdInput = it },
+            label = { Text("Game ID") },
+            singleLine = true
+        )
+        Spacer(Modifier.height(16.dp))
+
+        Button(onClick = { viewModel.joinOnlineGame(gameIdInput, playerName) }, enabled = playerName.isNotBlank() && gameIdInput.isNotBlank()) {
+            Text("Join Game")
+        }
+    }
+}
+
+@Composable
+fun WaitingRoomScreen(viewModel: GameViewModel, modifier: Modifier = Modifier) {
+    val players by viewModel.gameState.players.collectAsState()
+    val gameId by viewModel.gameId.collectAsState()
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Game Lobby", style = MaterialTheme.typography.headlineMedium)
+        Text("Game ID: $gameId")
+        Spacer(Modifier.height(32.dp))
+
+        Text("Players:", style = MaterialTheme.typography.headlineSmall)
+        players.forEach {
+            Text(it.name, style = MaterialTheme.typography.bodyLarge)
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        Button(
+            onClick = { viewModel.startOnlineGame() },
+            enabled = players.size >= 2
+        ) {
+            Text("Start Game")
+        }
+    }
+}
+
+
+@Composable
+fun GameScreen(viewModel: GameViewModel, modifier: Modifier = Modifier) {
+    val gameState = viewModel.gameState
     val players by gameState.players.collectAsState()
     val currentPlayerIndex by gameState.currentPlayerIndex.collectAsState()
     val gameLog by gameState.gameLog.collectAsState()
@@ -70,12 +169,13 @@ fun GameScreen(gameState: GameState, modifier: Modifier = Modifier) {
     val playerLosingInfluence by gameState.playerLosingInfluence.collectAsState()
 
     val currentPlayer = players.getOrNull(currentPlayerIndex)
+    val localPlayer = players.find { it.id == viewModel.localPlayerId }
 
     if (targetPlayerAction != null) {
         TargetSelectionDialog(
             players = players,
             currentPlayerIndex = currentPlayerIndex,
-            onTargetSelected = { targetIndex -> gameState.onTargetSelected(targetIndex) },
+            onTargetSelected = { targetIndex -> viewModel.onTargetSelected(targetIndex) },
             onDismiss = { gameState.cancelTargetSelection() }
         )
     }
@@ -84,17 +184,20 @@ fun GameScreen(gameState: GameState, modifier: Modifier = Modifier) {
     if (currentExchangeState != null) {
         ExchangeCardsDialog(
             exchangeState = currentExchangeState,
-            onCardsSelected = { cards -> gameState.performExchange(currentExchangeState.playerIndex, cards) },
-            onDismiss = { gameState.cancelExchange() }
+            onCardsSelected = { cards -> viewModel.performExchange(cards) },
+            onDismiss = { viewModel.performExchange(currentPlayer?.cards ?: emptyList()) }
         )
     }
 
     val currentLosingInfluence = playerLosingInfluence
     if (currentLosingInfluence != null) {
-        LoseInfluenceDialog(
-            player = players[currentLosingInfluence.playerIndex],
-            onCardSelected = { card -> gameState.confirmLoseInfluence(card) }
-        )
+        val losingPlayer = players[currentLosingInfluence.playerIndex]
+        if (losingPlayer.id == viewModel.localPlayerId) {
+            LoseInfluenceDialog(
+                player = losingPlayer,
+                onCardSelected = { card -> viewModel.loseInfluence(card) }
+            )
+        }
     }
 
     Column(modifier = modifier.padding(16.dp)) {
@@ -106,13 +209,14 @@ fun GameScreen(gameState: GameState, modifier: Modifier = Modifier) {
             ChallengePhase(
                 pendingAction = currentPendingAction,
                 players = players,
-                gameState = gameState
+                viewModel = viewModel
             )
         } else {
-            if (currentPlayer != null && !currentPlayer.isEliminated && currentExchangeState == null && currentLosingInfluence == null) {
+            if (currentPlayer != null && localPlayer != null && !currentPlayer.isEliminated && currentExchangeState == null && currentLosingInfluence == null) {
                 AvailableActions(
-                    gameState = gameState,
+                    viewModel = viewModel,
                     currentPlayer = currentPlayer,
+                    localPlayer = localPlayer
                 )
             }
         }
@@ -123,38 +227,123 @@ fun GameScreen(gameState: GameState, modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun PlayerUi(player: Player, isCurrent: Boolean) {
+    Card(
+        modifier = Modifier
+            .padding(4.dp)
+            .border(
+                width = 2.dp,
+                color = if (isCurrent) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = RoundedCornerShape(8.dp)
+            ),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = player.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(text = "Coins: ${player.coins}")
+            Text(text = "Influence: ${player.cards.size}")
+        }
+    }
+}
+
+@Composable
 fun PlayerStatus(players: List<Player>, currentPlayerIndex: Int) {
-    Column {
-        Text(stringResource(R.string.players), style = MaterialTheme.typography.headlineSmall)
-        val coinsString = stringResource(R.string.coins)
-        val influenceString = stringResource(R.string.influence)
-        players.forEachIndexed { index, player ->
-            val isCurrent = index == currentPlayerIndex
-            val playerText = "${if (isCurrent) stringResource(id = R.string.current_player_indicator) else ""}${player.name}: ${player.coins} $coinsString, ${player.cards.size} $influenceString"
-            Text(playerText, fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal)
+    LazyRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        itemsIndexed(players) { index, player ->
+            PlayerUi(player = player, isCurrent = index == currentPlayerIndex)
+        }
+    }
+}
+
+@Composable
+fun ActionCard(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    enabled: Boolean
+) {
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.width(120.dp),
+        contentPadding = PaddingValues(8.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, contentDescription = text)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text, fontSize = 12.sp)
         }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun AvailableActions(gameState: GameState, currentPlayer: Player) {
+fun AvailableActions(viewModel: GameViewModel, currentPlayer: Player, localPlayer: Player) {
+    val isMyTurn = viewModel.localPlayerId == currentPlayer.id
+
     Column {
-        Text(stringResource(R.string.your_turn, currentPlayer.name), style = MaterialTheme.typography.headlineSmall)
-        val cardTitles = currentPlayer.cards
+        val cardTitles = localPlayer.cards
             .map { stringResource(it.titleResId) }
             .joinToString()
         Text(stringResource(R.string.your_cards, cardTitles))
         Spacer(Modifier.height(8.dp))
         Text(stringResource(R.string.actions), style = MaterialTheme.typography.titleMedium)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { gameState.performAction(Action.INCOME) }) { Text(stringResource(R.string.income)) }
-            Button(onClick = { gameState.performAction(Action.FOREIGN_AID) }) { Text(stringResource(R.string.foreign_aid)) }
-            Button(onClick = { gameState.performAction(Action.TAX) }) { Text(stringResource(R.string.tax_duke)) }
-            Button(onClick = { gameState.startTargetSelection(Action.COUP) }, enabled = currentPlayer.coins >= 7) { Text(stringResource(R.string.coup_coins, 7)) }
-            Button(onClick = { gameState.startTargetSelection(Action.ASSASSINATE) }, enabled = currentPlayer.coins >= 3) { Text(stringResource(R.string.assassinate_coins, 3)) }
-            Button(onClick = { gameState.startTargetSelection(Action.STEAL) }) { Text(stringResource(R.string.steal_captain)) }
-            Button(onClick = { gameState.performAction(Action.EXCHANGE) }) { Text(stringResource(R.string.exchange_ambassador)) }
+        Spacer(Modifier.height(8.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            ActionCard(
+                text = stringResource(R.string.income),
+                icon = Icons.Default.CheckCircle,
+                onClick = { viewModel.performOnlineAction(Action.INCOME) },
+                enabled = isMyTurn
+            )
+            ActionCard(
+                text = stringResource(R.string.foreign_aid),
+                icon = Icons.Default.Add,
+                onClick = { viewModel.performOnlineAction(Action.FOREIGN_AID) },
+                enabled = isMyTurn
+            )
+            ActionCard(
+                text = stringResource(R.string.tax_duke),
+                icon = Icons.Default.ShoppingCart,
+                onClick = { viewModel.performOnlineAction(Action.TAX) },
+                enabled = isMyTurn
+            )
+            ActionCard(
+                text = stringResource(R.string.coup_coins, 7),
+                icon = Icons.Default.Refresh,
+                onClick = { viewModel.performOnlineAction(Action.COUP) },
+                enabled = isMyTurn && currentPlayer.coins >= 7
+            )
+            ActionCard(
+                text = stringResource(R.string.assassinate_coins, 3),
+                icon = Icons.Default.Close,
+                onClick = { viewModel.performOnlineAction(Action.ASSASSINATE) },
+                enabled = isMyTurn && currentPlayer.coins >= 3
+            )
+            ActionCard(
+                text = stringResource(R.string.steal_captain),
+                icon = Icons.Default.Star,
+                onClick = { viewModel.performOnlineAction(Action.STEAL) },
+                enabled = isMyTurn
+            )
+            ActionCard(
+                text = stringResource(R.string.exchange_ambassador),
+                icon = Icons.Default.Share,
+                onClick = { viewModel.performOnlineAction(Action.EXCHANGE) },
+                enabled = isMyTurn
+            )
         }
     }
 }
@@ -163,7 +352,7 @@ fun AvailableActions(gameState: GameState, currentPlayer: Player) {
 fun ChallengePhase(
     pendingAction: PendingAction,
     players: List<Player>,
-    gameState: GameState
+    viewModel: GameViewModel
 ) {
     val actionPlayer = players[pendingAction.playerIndex]
     val action = pendingAction.action
@@ -177,20 +366,21 @@ fun ChallengePhase(
         else -> ""
     }
 
+    val localPlayerIndex = players.indexOfFirst { it.id == viewModel.localPlayerId }
+    val canChallenge = pendingAction.potentialChallengers.contains(localPlayerIndex)
+
     Column {
         Text(text = stringResource(id = R.string.pending_action, actionText), style = MaterialTheme.typography.headlineSmall)
         Spacer(modifier = Modifier.height(8.dp))
         Text(stringResource(id = R.string.challenge_or_pass))
         Spacer(modifier = Modifier.height(8.dp))
 
-        pendingAction.potentialChallengers.forEach { challengerIndex ->
-            val challenger = players[challengerIndex]
+        if (canChallenge) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(id = R.string.challenger_prompt, challenger.name))
-                Button(onClick = { gameState.challenge(challengerIndex) }) {
+                Button(onClick = { viewModel.challenge() }) {
                     Text(stringResource(R.string.challenge))
                 }
-                Button(onClick = { gameState.pass(challengerIndex) }) {
+                Button(onClick = { viewModel.pass() }) {
                     Text(stringResource(R.string.pass))
                 }
             }
@@ -202,7 +392,9 @@ fun ChallengePhase(
 fun GameLogPanel(log: List<GameLog>) {
     Column {
         Text(stringResource(R.string.game_log), style = MaterialTheme.typography.headlineSmall)
-        LazyColumn(modifier = Modifier.fillMaxWidth().height(100.dp)) {
+        LazyColumn(modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp)) {
             items(log.reversed()) { logEntry ->
                 val formattedArgs = logEntry.args.map {
                     if (it is Int) stringResource(id = it) else it
